@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Shelf">
+<meta name="theme-color" content="#F1F2EE">
+<meta name="description" content="Track your skincare and beauty products and know what's running low before you run out.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F2EE; --surface:#FFFFFF; --ink:#1D2A31; --muted:#66737B; --faint:#98A3A9; --line:#DCE0DB;
+  --teal:#2E6A64; --teal-d:#23514C; --teal-t:#E3EDEA;
+  --ok:#7DA597; --low:#C68B2B; --out:#B0495B; --empty:#E7EAE5;
+  --serif:"Young Serif",Georgia,"Times New Roman",serif;
+  --sans:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+.wrap{max-width:720px;margin:0 auto;padding:0 18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* header */
+header{padding:calc(env(safe-area-inset-top,0px) + 18px) 0 6px}
+.top{display:flex;align-items:center;gap:10px}
+.wordmark{font-family:var(--serif);font-size:30px;line-height:1;margin:0;letter-spacing:-.01em}
+.top .sp{flex:1}
+.planbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:13.5px}
+.planbtn.pro{background:var(--teal);border-color:var(--teal);color:#fff}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
+.iconbtn svg{width:19px;height:19px}
+
+/* hero: the shelf strip */
+.strip{margin:18px 0 6px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 16px 14px}
+.vials{display:flex;align-items:flex-end;gap:9px;overflow-x:auto;padding:4px 2px 0;scrollbar-width:none;min-height:86px}
+.vials::-webkit-scrollbar{display:none}
+.vial{flex:0 0 auto;border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center}
+.vial .v{width:20px;border-radius:10px 10px 6px 6px;background:var(--empty);position:relative;overflow:hidden}
+.vial .v i{position:absolute;left:0;right:0;bottom:0;display:block;transition:height .5s ease}
+.vial .cap{width:12px;height:6px;border-radius:3px 3px 0 0;background:#C9CFCA;margin-bottom:1px}
+.vial.unknown .v{background:repeating-linear-gradient(135deg,#EEF0EC 0 4px,#E3E6E1 4px 8px)}
+.plank{height:6px;border-radius:3px;background:#D5D9D2;margin:0 -4px}
+.summary{margin:12px 2px 0;font-size:14.5px;color:var(--muted)}
+.summary b{color:var(--ink);font-weight:700}
+@media (prefers-reduced-motion:reduce){.vial .v i{transition:none}}
+
+/* tabs */
+.seg{display:flex;background:#E4E7E2;border-radius:12px;padding:3px;margin:16px 0 10px}
+.seg button{flex:1;border:none;background:none;border-radius:9px;padding:9px 6px;font-weight:600;color:var(--muted);font-size:14px}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(29,42,49,.08)}
+.seg .n{font-weight:500;color:var(--faint);margin-left:4px}
+
+/* controls */
+.search{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px;font-size:16px}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.ghost{border-style:dashed}
+.sortrow{display:flex;align-items:center;gap:10px;margin:10px 0 4px;font-size:13.5px;color:var(--muted)}
+.sortrow select{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;font-size:14px;font-weight:600;color:var(--ink)}
+
+/* product list */
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin:10px 0;overflow:hidden}
+.prow{display:grid;grid-template-columns:48px 1fr 22px;gap:13px;align-items:center;padding:13px 14px;border:none;border-top:1px solid var(--line);background:none;width:100%;text-align:left}
+.prow:first-child{border-top:none}
+.prow.off{opacity:.55}
+.thumb{width:48px;height:48px;border-radius:12px;object-fit:cover;background:#EEF0EC;display:grid;place-items:center}
+.pname{display:block;font-family:var(--serif);font-size:16.5px;line-height:1.25;overflow-wrap:anywhere}
+.pbrand{display:block;font-size:13px;color:var(--muted);margin-top:1px}
+.pstat{display:block;font-size:13px;margin-top:4px;font-weight:600}
+.pstat.ok{color:var(--teal)} .pstat.low{color:var(--low)} .pstat.out{color:var(--out)} .pstat.none{color:var(--faint);font-weight:500}
+.flag{display:inline-block;font-size:12px;font-weight:700;color:var(--out);margin-left:8px}
+.gauge{width:14px;height:42px;border-radius:7px;background:var(--empty);position:relative;overflow:hidden;justify-self:end}
+.gauge i{position:absolute;left:0;right:0;bottom:0}
+.gauge.unknown{background:repeating-linear-gradient(135deg,#EEF0EC 0 3px,#E3E6E1 3px 6px)}
+.grp{font-family:var(--serif);font-size:18px;margin:22px 2px 2px}
+.grp small{font-family:var(--sans);font-size:13px;color:var(--muted);margin-left:6px}
+.lrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:13px 14px;border-top:1px solid var(--line)}
+.lrow:first-child{border-top:none}
+.lrow .acts{display:flex;gap:6px}
+.sbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.sbtn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.empty{text-align:left;padding:22px 18px;color:var(--muted)}
+.empty h2{font-family:var(--serif);font-weight:400;font-size:22px;color:var(--ink);margin:0 0 6px}
+.empty .btns{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.teaser{background:var(--teal-t);border:1px solid #CFE0DB;border-radius:var(--r);padding:14px 16px;margin:14px 0;font-size:14px;color:var(--teal-d)}
+.teaser button{margin-top:10px}
+.cap-note{font-size:13px;color:var(--muted);margin:8px 2px}
+.cap-note button{border:none;background:none;color:var(--teal);font-weight:700;padding:0;text-decoration:underline}
+
+/* fab */
+.fab{position:fixed;right:max(18px,calc(50vw - 342px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:60px;height:60px;border-radius:50%;
+  border:none;background:var(--teal);color:#fff;display:grid;place-items:center;box-shadow:0 6px 18px rgba(35,81,76,.32);z-index:30}
+.fab svg{width:26px;height:26px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(29,42,49,.38);z-index:50;display:none}
+.scrim.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--bg);border-radius:22px 22px 0 0;max-height:92vh;overflow-y:auto;
+  padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .25s ease;max-width:720px;margin:0 auto}
+.sheet.on{transform:none}
+@media (prefers-reduced-motion:reduce){.sheet{transition:none}}
+.grab{width:40px;height:5px;border-radius:3px;background:#C9CFCA;margin:0 auto 12px}
+.sheet h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:4px 0 4px;line-height:1.2}
+.sheet .lead{color:var(--muted);margin:0 0 14px}
+label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 2px 5px}
+.in,.sheet select,.sheet textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:11px 12px;font-size:16px}
+.sheet textarea{min-height:64px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{display:flex;align-items:center;gap:10px;margin:14px 2px 0;font-size:15px}
+.check input{width:20px;height:20px;accent-color:var(--teal)}
+.hint{font-size:13px;color:var(--muted);margin:6px 2px 0}
+.actions{display:flex;gap:10px;margin-top:22px}
+.btn{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:13px 14px;font-weight:700;font-size:15px}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.danger{flex:0 0 auto;color:var(--out)}
+.btn:disabled{opacity:.55}
+.btn.block{width:100%;flex:none;display:block;margin-top:10px}
+.photo{display:flex;align-items:center;gap:14px}
+.photo .ph{width:72px;height:72px;border-radius:14px;background:#E7EAE5;display:grid;place-items:center;overflow:hidden;flex:0 0 auto}
+.photo .ph img{width:100%;height:100%;object-fit:cover}
+.stars{display:flex;gap:4px}
+.stars button{border:none;background:none;padding:2px;font-size:26px;line-height:1;color:#CBD1CD}
+.stars button.on{color:var(--low)}
+.locked{position:relative}
+.pro-pill{display:inline-block;font-size:11.5px;font-weight:700;color:var(--teal);background:var(--teal-t);border-radius:6px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.lockbox{border:1px dashed #BFD2CC;background:var(--teal-t);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--teal-d);width:100%;text-align:left}
+.choice{display:flex;gap:14px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:15px 16px;margin-top:10px}
+.choice .ci{width:42px;height:42px;border-radius:12px;background:var(--teal-t);color:var(--teal);display:grid;place-items:center;flex:0 0 auto}
+.choice .ci svg{width:22px;height:22px}
+.choice b{display:block;font-size:15.5px}
+.choice span{font-size:13.5px;color:var(--muted)}
+
+/* paywall */
+.pw-head{font-family:var(--serif);font-size:28px;line-height:1.15;margin:6px 0 8px}
+.pw-reason{color:var(--muted);margin:0 0 14px}
+.benefits{list-style:none;padding:0;margin:0 0 16px}
+.benefits li{padding:7px 0 7px 28px;position:relative;border-top:1px solid var(--line)}
+.benefits li:first-child{border-top:none}
+.benefits li::before{content:"";position:absolute;left:4px;top:12px;width:10px;height:14px;border-radius:5px 5px 3px 3px;
+  background:linear-gradient(to top,var(--ok) 60%,var(--empty) 60%)}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plan{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:13px 12px;text-align:left}
+.plan.on{border-color:var(--teal)}
+.plan b{display:block;font-size:15px}
+.plan .price{font-family:var(--serif);font-size:22px;margin-top:2px}
+.plan small{color:var(--muted);font-size:12.5px}
+.fine{font-size:12.5px;color:var(--muted);margin:10px 2px 0;text-align:center}
+.linkbtn{border:none;background:none;color:var(--teal);font-weight:700;padding:6px 0;text-decoration:underline;font-size:14px}
+
+/* settings */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-top:12px}
+.card h3{margin:0 0 4px;font-size:15px}
+.card p{margin:0;color:var(--muted);font-size:14px}
+.meter{height:8px;border-radius:4px;background:var(--empty);margin-top:10px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--teal)}
+.rowbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.keybox{font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all;background:#F4F5F2;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;max-height:84px;overflow:auto}
+
+/* scan */
+.shots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.shots div{position:relative}
+.shots img{width:76px;height:76px;border-radius:12px;object-fit:cover;display:block}
+.shots button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:14px;line-height:1;padding:0}
+.found{display:grid;grid-template-columns:24px 1fr;gap:10px;padding:12px 2px;border-top:1px solid var(--line);align-items:start}
+.found input{width:20px;height:20px;margin-top:3px;accent-color:var(--teal)}
+.found .pname{font-size:16px}
+.status{font-size:14px;color:var(--muted);margin-top:12px;min-height:20px}
+.status.err{color:var(--out)}
+
+/* categories */
+.catrow{display:flex;align-items:center;gap:12px;width:100%;border:none;border-top:1px solid var(--line);background:none;padding:12px 2px;text-align:left}
+.catrow:first-child{border-top:none}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.ipick{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
+.ipick.on{border-color:var(--ink)}
+.cpick{width:32px;height:32px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1.5px var(--line);padding:0}
+.cpick.on{box-shadow:0 0 0 2.5px var(--ink)}
+
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+  padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .2s;z-index:80;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (min-width:600px){ .wordmark{font-size:34px} .vial .v{width:22px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1 class="wordmark">Shelf</h1>
+      <span class="sp"></span>
+      <button class="planbtn" id="planBtn" onclick="planClick()">Try Pro</button>
+      <button class="iconbtn" aria-label="Settings" onclick="openSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<button class="fab" aria-label="Add a product" onclick="openAdd()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div class="scrim" id="scrim" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileAny" style="display:none">
+
+<script>
+"use strict";
+/* ================= constants ================= */
+const FREE_LIMIT = 20;
+const PRICES = { yearly: { label: "Yearly", price: "$29.99", per: "a year", sub: "About $2.50 a month. Save 50%" },
+                 monthly:{ label: "Monthly", price: "$4.99", per: "a month", sub: "Billed monthly" } };
+const TRIAL_DAYS = 7;
+const KEY = "shelf.v1", LKEY = "shelf.license", EKEY = "shelf.ent";
+const DEV_PRO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get("pro") === "1";
+
+const ICONS = {
+  face:'<circle cx="12" cy="12" r="8.3"/><circle cx="9.3" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.6" r="1" fill="currentColor" stroke="none"/><path d="M8.7 14.4c1.5 1.7 5.1 1.7 6.6 0"/>',
+  hair:'<path d="M8 3.5c-2 3.2 1.8 5 0 8.2S9.6 16.8 8 20.5"/><path d="M12.5 3.5c-2 3.2 1.8 5 0 8.2S14.1 16.8 12.5 20.5"/><path d="M17.4 4.5c-1.3 2.4 1 3.8 0 6"/>',
+  body:'<circle cx="12" cy="6" r="3.1"/><path d="M6 20.5c0-4 2.7-6.8 6-6.8s6 2.8 6 6.8"/>',
+  lipstick:'<rect x="9" y="12.2" width="6" height="8.6" rx="1.1"/><path d="M10.4 12.2V7c0-1.7 3.2-2.6 3.2-.6v5.8"/>',
+  capsule:'<rect x="3" y="9" width="18" height="6" rx="3"/><path d="M12 9v6"/>',
+  sparkle:'<path d="M12 3.2l1.9 5.7 5.7 1.4-5.7 1.9L12 17.8l-1.9-5.6-5.7-1.9 5.7-1.4z"/>',
+  drop:'<path d="M12 3.4c3 3.7 5.2 6.2 5.2 9a5.2 5.2 0 1 1-10.4 0c0-2.8 2.2-5.3 5.2-9z"/>',
+  flower:'<circle cx="12" cy="6.6" r="2.6"/><circle cx="17.4" cy="12" r="2.6"/><circle cx="12" cy="17.4" r="2.6"/><circle cx="6.6" cy="12" r="2.6"/><circle cx="12" cy="12" r="1.9"/>',
+  bottle:'<path d="M10 3.6h4v2.9l2.2 3v10.9a1 1 0 0 1-1 1H8.8a1 1 0 0 1-1-1V9.5L10 6.5z"/>',
+  leaf:'<path d="M4.6 19.4C4.6 11 11 5.6 19.4 5.1c.5 8.4-5 14.9-14 14.3z"/><path d="M4.6 19.4 12 12"/>'
+};
+const CAT_COLORS = ["#2E6A64","#B06F1E","#6D4FB0","#B0495B","#23809A","#4E7D3A","#B8447F","#46509E","#8A6A4B","#56646C"];
+function defaultCats(){ return [
+  {name:"Skincare",icon:"face",color:"#2E6A64",subtypes:["Cleanser","Toner","Serum","Moisturizer","Eye care","Mask","Exfoliant","SPF"]},
+  {name:"Hair",icon:"hair",color:"#B06F1E",subtypes:["Shampoo","Conditioner","Leave-in","Deep conditioner","Oil/Serum","Styler","Treatment"]},
+  {name:"Body",icon:"body",color:"#6D4FB0",subtypes:["Wash","Lotion","Oil","Scrub","SPF","Deodorant"]},
+  {name:"Makeup",icon:"lipstick",color:"#B8447F",subtypes:["Primer","Foundation","Concealer","Powder","Blush","Bronzer","Highlighter","Brow","Eyeshadow","Eyeliner","Mascara","Lip","Setting spray"]},
+  {name:"Fragrance",icon:"flower",color:"#46509E",subtypes:["Perfume","Body mist","Solid"]},
+  {name:"Supplements",icon:"capsule",color:"#4E7D3A",subtypes:["Capsule","Powder","Gummy","Liquid"]},
+  {name:"Other",icon:"sparkle",color:"#56646C",subtypes:[]}
+];}
+const STOCK = ["Full","Half","Low","Almost out","Empty"];
+const STOCK_PCT = {"Full":1,"Half":.5,"Low":.25,"Almost out":.1,"Empty":0};
+const SORTS = [
+  ["smart","Runs out soonest",true],["days","Days left",true],["rating","Rating",true],
+  ["name","Name",false],["brand","Brand",false],["category","Category",false],["recent","Recently bought",false]
+];
+
+/* ================= state ================= */
+function jget(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(e){ return null; } }
+function jset(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ toast("Storage is full. Remove a few photos, then try again."); return false; } }
+let db = jget(KEY) || { products:[], categories:defaultCats(), settings:{} };
+if(!Array.isArray(db.products)) db.products=[];
+if(!Array.isArray(db.categories)||!db.categories.length) db.categories=defaultCats();
+db.settings = db.settings || {};
+let lic = jget(LKEY);          // { token, email }
+let ent = jget(EKEY) || {};    // cached entitlement from /api/status
+const ui = { tab:"shelf", q:"", cat:"All", sort: db.settings.sort || "name" };
+function save(){ jset(KEY, db); }
+
+function isPro(){
+  if(DEV_PRO) return true;
+  return !!(lic && lic.token && ent && ent.pro && (Date.now() - (ent.checkedAt||0)) < 7*864e5);
+}
+function sortOK(k){ const s=SORTS.find(x=>x[0]===k); return s && (!s[2] || isPro()); }
+
+/* ================= utils ================= */
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function uid(){ return "p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function todayISO(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseISO(s){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||""); return m? new Date(+m[1],+m[2]-1,+m[3]) : null; }
+function fmtDate(d){ return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+function fmtLong(ms){ return new Date(ms).toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}); }
+function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+let toastT;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),2600); }
+function download(name, text, type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+function getCat(name){ return db.categories.find(c=>c.name===name) || {name:name||"Other",icon:"sparkle",color:"#56646C",subtypes:[]}; }
+function icon(key,color,size){ return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="'+color+'" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:'+color+'">'+(ICONS[key]||ICONS.sparkle)+'</svg>'; }
+function thumb(p){ if(p.img) return '<img class="thumb" alt="" src="'+p.img+'">'; const c=getCat(p.category); return '<span class="thumb" style="background:'+c.color+'16">'+icon(c.icon,c.color,22)+'</span>'; }
+
+/* ================= projection: the core of Shelf ================= */
+function lifeDays(p){ const n=parseFloat(p.expAmt); if(!(n>0)) return 0; return ({days:1,weeks:7,months:30.44,years:365.25}[p.expUnit||"months"]||30.44)*n; }
+function projection(p){
+  if(!isPro()) return null;
+  const L=lifeDays(p), d=parseISO(p.lastPurchased); if(!L||!d) return null;
+  const now=new Date(); now.setHours(0,0,0,0);
+  const used=(now-d)/864e5;
+  return { pct:clamp(1-used/L,0,1), daysLeft:Math.round(L-used), outDate:new Date(d.getTime()+L*864e5) };
+}
+function level(p){
+  const pr=projection(p), s=(p.stock in STOCK_PCT)?STOCK_PCT[p.stock]:null;
+  let pct=null;
+  if(pr && s!=null) pct=Math.min(pr.pct,s); else if(pr) pct=pr.pct; else if(s!=null) pct=s;
+  let state="unknown";
+  if(pct!=null) state = (pr ? (pr.daysLeft<=0 || (s!=null && s<=0.05)) : pct<=0.05) ? "out" : (pct<=0.25 || (pr && pr.daysLeft<=14)) ? "low" : "ok";
+  return { pct, state, pr };
+}
+function stateColor(st){ return st==="out"?"var(--out)":st==="low"?"var(--low)":"var(--ok)"; }
+function needsReorder(p){ if(p.active===false) return false; if(p.reorder) return true; const s=level(p).state; return s==="out"||s==="low"; }
+function statusText(p, L){
+  L=L||level(p); const pr=L.pr;
+  if(p.active===false) return ["none","Retired"];
+  if(pr){
+    if(pr.daysLeft<=0) return ["out","Likely out since "+fmtDate(pr.outDate)];
+    if(pr.daysLeft<=13) return [L.state, pr.daysLeft+" day"+(pr.daysLeft===1?"":"s")+" left"];
+    if(pr.daysLeft<=60) return [L.state, "About "+Math.round(pr.daysLeft/7)+" weeks left"];
+    return [L.state, "Runs out around "+fmtDate(pr.outDate)];
+  }
+  if(p.stock) return [L.state, p.stock==="Empty"?"Empty":p.stock==="Full"?"Full":p.stock];
+  if(!isPro() && p.lastPurchased && p.expAmt) return ["none","Countdown available with Pro"];
+  return ["none","No level set"];
+}
+
+/* ================= render ================= */
+function render(){
+  const pb=$("planBtn");
+  if(isPro()){ pb.textContent = ent.status==="trialing" ? "Pro trial" : "Pro"; pb.classList.add("pro"); }
+  else { pb.textContent="Try Pro"; pb.classList.remove("pro"); }
+  if(!sortOK(ui.sort)) ui.sort="name";
+  const m=$("main"); m.innerHTML="";
+  if(!db.products.length){ m.appendChild(emptyState()); return; }
+  m.appendChild(strip());
+  const lowN=db.products.filter(needsReorder).length;
+  const seg=document.createElement("div"); seg.className="seg"; seg.setAttribute("role","tablist");
+  seg.innerHTML='<button role="tab" class="'+(ui.tab==="shelf"?"on":"")+'" aria-selected="'+(ui.tab==="shelf")+'" onclick="setTab(\'shelf\')">Shelf<span class="n">'+db.products.length+'</span></button>'+
+    '<button role="tab" class="'+(ui.tab==="low"?"on":"")+'" aria-selected="'+(ui.tab==="low")+'" onclick="setTab(\'low\')">Running low<span class="n">'+lowN+'</span></button>';
+  m.appendChild(seg);
+  if(ui.tab==="low") renderLow(m); else renderShelf(m);
+}
+function setTab(t){ ui.tab=t; render(); }
+
+function emptyState(){
+  const d=document.createElement("div"); d.className="strip";
+  d.innerHTML='<div class="empty" style="padding:6px 2px"><h2>Your shelf is empty.</h2>'+
+    '<p>Add the products you use. Shelf shows what\'s running low so you can reorder before you run out.</p>'+
+    '<div class="btns"><button class="sbtn primary" onclick="openScan()">Scan a product'+(isPro()?'':'<span class="pro-pill" style="background:#ffffff33;color:#fff">Pro</span>')+'</button>'+
+    '<button class="sbtn" onclick="openProduct(null)">Add by hand</button>'+
+    '<button class="sbtn" onclick="openImport()">Import a CSV</button></div></div>';
+  return d;
+}
+
+function strip(){
+  const act=db.products.filter(p=>p.active!==false).map(p=>({p,L:level(p)}));
+  act.sort((a,b)=>((a.L.pct==null?2:a.L.pct)-(b.L.pct==null?2:b.L.pct)));
+  const s=document.createElement("section"); s.className="strip"; s.setAttribute("aria-label","Product levels");
+  const v=document.createElement("div"); v.className="vials";
+  act.forEach(({p,L})=>{
+    const b=document.createElement("button"); b.className="vial"+(L.pct==null?" unknown":"");
+    const h=56+((p.name||"").length%3)*8; // varied bottle heights read as a real shelf
+    const st=statusText(p,L)[1];
+    b.setAttribute("aria-label",p.name+": "+st); b.title=p.name+": "+st;
+    b.innerHTML='<span class="cap"></span><span class="v" style="height:'+h+'px">'+(L.pct!=null?'<i style="height:'+Math.round(L.pct*100)+'%;background:'+stateColor(L.state)+'"></i>':'')+'</span>';
+    b.onclick=()=>openProduct(p.id); v.appendChild(b);
+  });
+  s.appendChild(v);
+  const pl=document.createElement("div"); pl.className="plank"; s.appendChild(pl);
+  const out=act.filter(x=>x.L.state==="out").length, low=act.filter(x=>x.L.state==="low").length,
+        ok=act.filter(x=>x.L.state==="ok").length, unk=act.filter(x=>x.L.state==="unknown").length;
+  const parts=[];
+  if(out) parts.push('<b>'+out+' out</b>');
+  if(low) parts.push('<b>'+low+' running low</b>');
+  if(ok) parts.push(ok+' stocked');
+  if(unk) parts.push(unk+' with no level yet');
+  const sm=document.createElement("p"); sm.className="summary";
+  sm.innerHTML = parts.length ? joinWords(parts)+"." : "Nothing active on your shelf.";
+  s.appendChild(sm);
+  return s;
+}
+function joinWords(a){ return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]; }
+
+function renderShelf(m){
+  const s=document.createElement("input"); s.className="search"; s.type="search"; s.placeholder="Search products or brands"; s.value=ui.q;
+  s.setAttribute("aria-label","Search products"); s.oninput=()=>{ ui.q=s.value; fillList(); };
+  m.appendChild(s);
+  const ch=document.createElement("div"); ch.className="chips"; ch.id="chips";
+  ["All"].concat(db.categories.map(c=>c.name)).forEach(n=>{
+    const b=document.createElement("button"); b.className="chip"+(ui.cat===n?" on":""); b.textContent=n;
+    b.onclick=()=>{ ui.cat=n; [...ch.querySelectorAll(".chip")].forEach(x=>x.classList.toggle("on",x.textContent===n)); fillList(); };
+    ch.appendChild(b); });
+  const g=document.createElement("button"); g.className="chip ghost"; g.textContent="Edit categories"; g.onclick=openCats; ch.appendChild(g);
+  m.appendChild(ch);
+  const sr=document.createElement("div"); sr.className="sortrow";
+  sr.innerHTML='<label for="sortSel">Sort</label><select id="sortSel">'+SORTS.map(o=>'<option value="'+o[0]+'"'+(ui.sort===o[0]?" selected":"")+'>'+o[1]+(o[2]&&!isPro()?" (Pro)":"")+'</option>').join("")+'</select>';
+  m.appendChild(sr);
+  sr.querySelector("select").onchange=e=>{ const v=e.target.value; if(!sortOK(v)){ e.target.value=ui.sort; paywall("sort"); return; } ui.sort=v; db.settings.sort=v; save(); fillList(); };
+  const box=document.createElement("div"); box.id="plist"; m.appendChild(box);
+  if(!isPro()){ const n=document.createElement("p"); n.className="cap-note";
+    n.innerHTML=db.products.length+' of '+FREE_LIMIT+' free spots used. <button onclick="paywall(\'generic\')">Get unlimited</button>'; m.appendChild(n); }
+  fillList();
+}
+function fillList(){
+  const box=$("plist"); if(!box) return; box.innerHTML="";
+  if(ui.cat!=="All" && !db.categories.some(c=>c.name===ui.cat)) ui.cat="All";
+  let ps=db.products.slice();
+  if(ui.cat!=="All") ps=ps.filter(p=>p.category===ui.cat);
+  const q=ui.q.trim().toLowerCase();
+  if(q) ps=ps.filter(p=>[p.name,p.brand,p.actives,p.subtype].some(v=>(v||"").toLowerCase().includes(q)));
+  const L=new Map(ps.map(p=>[p.id,level(p)]));
+  const pctOf=p=>{ const x=L.get(p.id).pct; return x==null?2:x; };
+  const byName=(a,b)=>(a.name||"").localeCompare(b.name||"");
+  const off=p=>p.active===false?1:0;
+  const S={
+    smart:(a,b)=>off(a)-off(b)||(needsReorder(b)-needsReorder(a))||pctOf(a)-pctOf(b)||byName(a,b),
+    days:(a,b)=>off(a)-off(b)||((L.get(a.id).pr?L.get(a.id).pr.daysLeft:1e6)-(L.get(b.id).pr?L.get(b.id).pr.daysLeft:1e6))||byName(a,b),
+    rating:(a,b)=>(b.rating||0)-(a.rating||0)||byName(a,b),
+    name:(a,b)=>off(a)-off(b)||byName(a,b),
+    brand:(a,b)=>off(a)-off(b)||(a.brand||"~").localeCompare(b.brand||"~")||byName(a,b),
+    category:(a,b)=>off(a)-off(b)||(a.category||"").localeCompare(b.category||"")||(a.subtype||"").localeCompare(b.subtype||"")||byName(a,b),
+    recent:(a,b)=>(b.lastPurchased||"").localeCompare(a.lastPurchased||"")||byName(a,b)
+  };
+  ps.sort(S[ui.sort]||S.name);
+  if(!ps.length){ box.innerHTML='<div class="empty">No products match. Try another category or search.</div>'; return; }
+  const list=document.createElement("div"); list.className="list";
+  ps.forEach(p=>list.appendChild(prow(p,L.get(p.id))));
+  box.appendChild(list);
+}
+function gaugeHTML(L){
+  if(L.pct==null) return '<span class="gauge unknown" aria-hidden="true"></span>';
+  return '<span class="gauge" aria-hidden="true"><i style="height:'+Math.round(L.pct*100)+'%;background:'+stateColor(L.state)+'"></i></span>';
+}
+function prow(p,L){
+  const b=document.createElement("button"); b.className="prow"+(p.active===false?" off":"");
+  const st=statusText(p,L);
+  const sub=[p.brand,p.subtype].filter(Boolean).map(esc).join(", ");
+  b.innerHTML=thumb(p)+'<span style="min-width:0"><span class="pname">'+esc(p.name)+'</span>'+
+    (sub?'<span class="pbrand">'+sub+'</span>':'')+
+    '<span class="pstat '+st[0]+'">'+esc(st[1])+(p.reorder&&p.active!==false?'<span class="flag">Reorder</span>':'')+'</span></span>'+gaugeHTML(L);
+  b.onclick=()=>openProduct(p.id);
+  return b;
+}
+
+function renderLow(m){
+  const act=db.products.filter(p=>p.active!==false);
+  const rows=act.map(p=>({p,L:level(p)}));
+  const out=rows.filter(x=>x.L.state==="out"), low=rows.filter(x=>x.L.state==="low"),
+        flagged=rows.filter(x=>x.p.reorder && x.L.state!=="out" && x.L.state!=="low");
+  const byPct=(a,b)=>(a.L.pct==null?2:a.L.pct)-(b.L.pct==null?2:b.L.pct);
+  const group=(title,note,arr)=>{ if(!arr.length) return;
+    const h=document.createElement("h2"); h.className="grp"; h.innerHTML=esc(title)+'<small>'+esc(note)+'</small>'; m.appendChild(h);
+    const l=document.createElement("div"); l.className="list"; arr.sort(byPct).forEach(x=>l.appendChild(lrow(x.p,x.L))); m.appendChild(l); };
+  group("Out","Reorder now",out);
+  group("Running low","Within about two weeks",low);
+  group("Flagged","You marked these to reorder",flagged);
+  if(!out.length&&!low.length&&!flagged.length){
+    const e=document.createElement("div"); e.className="list";
+    e.innerHTML='<div class="empty"><h2>Nothing running low.</h2>'+(isPro()
+      ? 'Products show up here as their countdown gets close. Add a purchase date and how long each one lasts to start the countdown.'
+      : 'Products show up here when you set their stock to Low or flag them to reorder.')+'</div>';
+    m.appendChild(e);
+  }
+  if(!isPro()){
+    const t=document.createElement("div"); t.className="teaser";
+    t.innerHTML='<b>Stop checking bottles by hand.</b><br>With Pro, Shelf counts down each product from the day you bought it and lists it here before it runs out.'+
+      '<br><button class="sbtn primary" onclick="paywall(\'projection\')">Start free trial</button>';
+    m.appendChild(t);
+  }
+}
+function lrow(p,L){
+  const d=document.createElement("div"); d.className="lrow";
+  const st=statusText(p,L);
+  const url=p.website ? (/^https?:\/\//i.test(p.website)?p.website:"https://"+p.website) : "";
+  d.innerHTML='<button style="border:none;background:none;padding:0;text-align:left;min-width:0" data-open><span class="pname">'+esc(p.name)+'</span>'+
+    (p.brand?'<span class="pbrand">'+esc(p.brand)+'</span>':'')+'<span class="pstat '+st[0]+'">'+esc(st[1])+'</span></button>'+
+    '<div class="acts">'+(url?'<a class="sbtn" style="text-decoration:none;color:inherit" target="_blank" rel="noopener" href="'+esc(url)+'">Shop</a>':'')+
+    '<button class="sbtn primary" data-re>Reordered</button></div>';
+  d.querySelector("[data-open]").onclick=()=>openProduct(p.id);
+  d.querySelector("[data-re]").onclick=()=>markReordered(p.id);
+  return d;
+}
+function markReordered(id){
+  const p=db.products.find(x=>x.id===id); if(!p) return;
+  p.lastPurchased=todayISO(); p.stock="Full"; p.reorder=false; save(); render();
+  toast(isPro()&&p.expAmt ? "Restocked. Countdown restarted today." : "Restocked.");
+}
+
+/* ================= sheets ================= */
+let sheetClose=null;
+function openSheet(html, onClose){
+  const s=$("sheet"); s.innerHTML='<div class="grab"></div>'+html; s.scrollTop=0;
+  $("scrim").classList.add("on"); requestAnimationFrame(()=>s.classList.add("on"));
+  sheetClose=onClose||null;
+  setTimeout(()=>{ const f=s.querySelector("[autofocus]"); if(f) f.focus(); },260);
+}
+function closeSheet(){ $("sheet").classList.remove("on"); $("scrim").classList.remove("on"); if(sheetClose){ const f=sheetClose; sheetClose=null; f(); } }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && $("sheet").classList.contains("on")) closeSheet(); });
+
+/* ---------- add chooser ---------- */
+function canAdd(n){ n=n||1; if(isPro()) return true; if(db.products.length+n<=FREE_LIMIT) return true; paywall("cap"); return false; }
+function openAdd(){
+  if(!canAdd()) return;
+  openSheet('<h2 id="sheetTitle">Add a product</h2>'+
+    '<button class="choice" onclick="closeSheet();openScan()"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.2"/></svg></span>'+
+      '<span><b>Scan with camera'+(isPro()?'':'<span class="pro-pill">Pro</span>')+'</b><span>Snap a label or a whole shelf. Shelf fills in the details.</span></span></button>'+
+    '<button class="choice" onclick="closeSheet();openProduct(null)"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>'+
+      '<span><b>Add by hand</b><span>Type in the name, brand, and category.</span></span></button>'+
+    '<button class="choice" onclick="closeSheet();openImport()"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span>'+
+      '<span><b>Import a list</b><span>Paste rows or upload a CSV.</span></span></button>');
+}
+
+/* ---------- product editor ---------- */
+let editing=null, draft={};
+function openProduct(id){
+  if(!id && !canAdd()) return;
+  editing=id;
+  const p = id ? db.products.find(x=>x.id===id) : null;
+  draft = p ? Object.assign({},p) : {name:"",brand:"",category:(ui.cat!=="All"?ui.cat:db.categories[0].name),subtype:"",size:"",actives:"",cost:"",website:"",stock:"",rating:0,lastPurchased:todayISO(),expAmt:"",expUnit:"months",reorder:false,active:true,notes:"",img:""};
+  const pro=isPro();
+  const catOpts=db.categories.map(c=>'<option'+(c.name===draft.category?" selected":"")+'>'+esc(c.name)+'</option>').join("");
+  openSheet('<h2 id="sheetTitle">'+(id?"Edit product":"Add product")+'</h2>'+
+    '<div class="photo"><div class="ph" id="dPh"></div><div style="display:flex;flex-direction:column;gap:6px">'+
+      '<button class="sbtn" onclick="pickPhoto()">'+(draft.img?"Change photo":"Add photo")+'</button>'+
+      '<button class="sbtn" id="dPhX" onclick="draft.img=\'\';drawPhoto()" style="'+(draft.img?"":"display:none")+'">Remove</button></div></div>'+
+    '<label class="f" for="dName">Product name</label><input class="in" id="dName" value="'+esc(draft.name)+'" '+(id?"":"autofocus")+' autocomplete="off">'+
+    '<label class="f" for="dBrand">Brand</label><input class="in" id="dBrand" value="'+esc(draft.brand)+'" autocomplete="off">'+
+    '<div class="two"><div><label class="f" for="dCat">Category</label><select id="dCat" onchange="fillSubs()">'+catOpts+'</select></div>'+
+      '<div><label class="f" for="dSub">Type</label><select id="dSub"></select></div></div>'+
+    '<div class="two"><div><label class="f" for="dStock">Stock</label><select id="dStock"><option value="">Not set</option>'+STOCK.map(s=>'<option'+(draft.stock===s?" selected":"")+'>'+s+'</option>').join("")+'</select></div>'+
+      '<div><label class="f" for="dSize">Size</label><input class="in" id="dSize" placeholder="1 fl oz" value="'+esc(draft.size)+'"></div></div>'+
+    '<label class="f" for="dLast">Last bought</label><input class="in" type="date" id="dLast" value="'+esc(draft.lastPurchased)+'">'+
+    '<label class="f">How long one lasts'+(pro?'':'<span class="pro-pill">Pro countdown</span>')+'</label>'+
+    '<div class="two"><input class="in" id="dExpAmt" inputmode="decimal" placeholder="3" value="'+esc(draft.expAmt)+'">'+
+      '<select id="dExpUnit">'+["days","weeks","months","years"].map(u=>'<option'+((draft.expUnit||"months")===u?" selected":"")+'>'+u+'</option>').join("")+'</select></div>'+
+    (pro?'<p class="hint">Shelf counts down from the day you bought it and moves it to Running low when it gets close.</p>'
+        :'<button class="lockbox" style="margin-top:8px" onclick="paywall(\'projection\')">Save this now. With Pro, Shelf uses it to count down and warn you before it runs out.</button>')+
+    '<label class="f">Rating</label><div class="stars" id="dStars" role="radiogroup" aria-label="Rating"></div>'+
+    '<label class="f" for="dActives">Key ingredients</label><textarea id="dActives">'+esc(draft.actives)+'</textarea>'+
+    '<div class="two"><div><label class="f" for="dCost">Price ($)</label><input class="in" id="dCost" inputmode="decimal" value="'+esc(draft.cost)+'"></div>'+
+      '<div><label class="f" for="dWeb">Where to buy</label><input class="in" id="dWeb" placeholder="brand.com" value="'+esc(draft.website)+'"></div></div>'+
+    '<label class="f" for="dNotes">Notes</label><textarea id="dNotes">'+esc(draft.notes)+'</textarea>'+
+    '<label class="check"><input type="checkbox" id="dReorder"'+(draft.reorder?" checked":"")+'> Flag to reorder</label>'+
+    (pro?'<label class="check"><input type="checkbox" id="dActive"'+(draft.active!==false?" checked":"")+'> In use (uncheck to retire it)</label>'
+        :'<label class="check" onclick="event.preventDefault();paywall(\'active\')"><input type="checkbox" checked disabled> In use<span class="pro-pill">Pro</span></label>')+
+    '<div class="actions">'+(id?'<button class="btn danger" aria-label="Delete product" onclick="delProduct()">Delete</button>':'')+
+      '<button class="btn" onclick="closeSheet()">Cancel</button><button class="btn primary" onclick="saveProduct()">Save</button></div>');
+  fillSubs(draft.subtype); drawStars(); drawPhoto();
+}
+function fillSubs(keep){
+  const cat=$("dCat").value, subs=getCat(cat).subtypes||[], sel=$("dSub");
+  const cur = typeof keep==="string" ? keep : "";
+  const opts=[""].concat(subs); if(cur && !subs.includes(cur)) opts.push(cur);
+  sel.innerHTML=opts.map(s=>'<option value="'+esc(s)+'"'+(s===cur?" selected":"")+'>'+(s?esc(s):"Not set")+'</option>').join("");
+}
+function drawStars(){
+  const b=$("dStars"); b.innerHTML="";
+  for(let i=1;i<=5;i++){ const s=document.createElement("button"); s.type="button"; s.className=i<=(draft.rating||0)?"on":"";
+    s.textContent="\u2605"; s.setAttribute("role","radio"); s.setAttribute("aria-checked",String(i===draft.rating)); s.setAttribute("aria-label",i+" star"+(i>1?"s":""));
+    s.onclick=()=>{ draft.rating = draft.rating===i?0:i; drawStars(); }; b.appendChild(s); }
+}
+function drawPhoto(){
+  const h=$("dPh"); if(!h) return;
+  const c=getCat(($("dCat")||{}).value||draft.category);
+  h.innerHTML = draft.img ? '<img alt="" src="'+draft.img+'">' : icon(c.icon,c.color,28);
+  const x=$("dPhX"); if(x) x.style.display=draft.img?"":"none";
+}
+function pickPhoto(){
+  const f=$("fileAny"); f.accept="image/*"; f.multiple=false; f.removeAttribute("capture");
+  f.onchange=async()=>{ const file=f.files[0]; f.value=""; if(!file) return; draft.img=await shrink(file,360,0.62,true); drawPhoto(); };
+  f.click();
+}
+function saveProduct(){
+  const v=id=>($(id).value||"").trim();
+  const name=v("dName"); if(!name){ toast("Give the product a name."); $("dName").focus(); return; }
+  const obj={ name, brand:v("dBrand"), category:$("dCat").value, subtype:$("dSub").value, stock:$("dStock").value, size:v("dSize"),
+    lastPurchased:$("dLast").value, expAmt:v("dExpAmt"), expUnit:$("dExpUnit").value, rating:draft.rating||0, actives:v("dActives"),
+    cost:v("dCost").replace(/^\$/,""), website:v("dWeb"), notes:v("dNotes"), reorder:$("dReorder").checked, img:draft.img||"" };
+  if(isPro()) obj.active=$("dActive").checked;
+  if(editing){ const p=db.products.find(x=>x.id===editing); if(p) Object.assign(p,obj); }
+  else { if(!canAdd()) return; obj.id=uid(); obj.created=Date.now(); if(obj.active===undefined) obj.active=true; db.products.unshift(obj); }
+  if(!save()) return;
+  sheetClose=null; closeSheet(); render(); toast(editing?"Saved.":"Added to your shelf.");
+}
+function delProduct(){
+  const p=db.products.find(x=>x.id===editing); if(!p) return;
+  if(!confirm("Delete "+p.name+"?")) return;
+  db.products=db.products.filter(x=>x.id!==editing); save(); closeSheet(); render(); toast("Deleted.");
+}
+
+/* ---------- images ---------- */
+function shrink(file,maxDim,q,asDataUrl){
+  return new Promise(res=>{ const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{ let w=img.naturalWidth||maxDim,h=img.naturalHeight||maxDim; const sc=Math.min(1,maxDim/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h; cv.getContext("2d").drawImage(img,0,0,w,h);
+      let out=""; try{ out=cv.toDataURL("image/jpeg",q); }catch(e){} URL.revokeObjectURL(url);
+      res(asDataUrl?out:(out?{data:out.split(",")[1],mediaType:"image/jpeg",preview:out}:null)); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(asDataUrl?"":null); }; img.src=url; });
+}
+
+/* ================= AI scan (Pro) ================= */
+let shots=[], found=[];
+function openScan(){
+  if(!isPro()){ paywall("scan"); return; }
+  if(!canAdd()) return;
+  shots=[]; found=[];
+  const left=Math.max(0,(ent.scansLimit||50)-(ent.scansUsed||0));
+  openSheet('<h2 id="sheetTitle">Scan products</h2><p class="lead">Photograph one label up close, or a whole shelf. Shelf reads the name, brand, size, and key ingredients.</p>'+
+    '<div class="rowbtns"><button class="sbtn primary" onclick="takeShot(true)">Take a photo</button><button class="sbtn" onclick="takeShot(false)">Choose photos</button></div>'+
+    '<div class="shots" id="shots"></div>'+
+    '<div class="status" id="scanStatus">'+(DEV_PRO?"Developer mode: scans still need the server running.":left+" of "+(ent.scansLimit||50)+" scans left this month.")+'</div>'+
+    '<div class="actions"><button class="btn" onclick="closeSheet()">Cancel</button><button class="btn primary" id="scanGo" onclick="runScan()" disabled>Read photos</button></div>');
+}
+function takeShot(camera){
+  const f=$("fileAny"); f.accept="image/*"; f.multiple=!camera;
+  if(camera) f.setAttribute("capture","environment"); else f.removeAttribute("capture");
+  f.onchange=async()=>{ const files=[...f.files]; f.value="";
+    for(const file of files){ if(shots.length>=4){ toast("Up to 4 photos per scan."); break; } const s=await shrink(file,1400,0.72,false); if(s) shots.push(s); }
+    drawShots(); };
+  f.click();
+}
+function drawShots(){
+  const b=$("shots"); if(!b) return; b.innerHTML="";
+  shots.forEach((s,i)=>{ const d=document.createElement("div"); d.innerHTML='<img alt="Photo '+(i+1)+'" src="'+s.preview+'"><button aria-label="Remove photo">\u00d7</button>';
+    d.querySelector("button").onclick=()=>{ shots.splice(i,1); drawShots(); }; b.appendChild(d); });
+  $("scanGo").disabled=!shots.length;
+}
+async function runScan(){
+  const st=$("scanStatus"), go=$("scanGo"); go.disabled=true; st.className="status"; st.textContent="Reading your photos\u2026";
+  try{
+    const r=await api("scan",{images:shots.map(s=>({data:s.data,mediaType:s.mediaType})),categories:db.categories.map(c=>({name:c.name,subtypes:c.subtypes}))});
+    ent.scansUsed=r.scansUsed; ent.scansLimit=r.scansLimit; jset(EKEY,ent);
+    found=(r.products||[]).map(x=>Object.assign(x,{__on:true}));
+    if(!found.length){ st.className="status err"; st.textContent="No product label could be read. Try a closer photo in good light."; go.disabled=false; return; }
+    reviewFound();
+  }catch(e){ st.className="status err"; st.textContent=e.message; go.disabled=false; }
+}
+function reviewFound(){
+  const withThumb = shots.length===1 && found.length===1;
+  const rows=found.map((x,i)=>{ const c=matchCat(x.category);
+    const life = +x.lifeAmount>0 ? "Lasts about "+x.lifeAmount+" "+(x.lifeUnit||"months") : "";
+    const meta=[x.brand,c+(x.subtype?", "+x.subtype:""),x.size,life].filter(Boolean).map(esc).join('<br>');
+    return '<label class="found"><input type="checkbox" data-i="'+i+'" checked><span><span class="pname">'+esc(x.name||"Unnamed product")+'</span><span class="pbrand">'+meta+'</span></span></label>'; }).join("");
+  openSheet('<h2 id="sheetTitle">Found '+found.length+' product'+(found.length===1?"":"s")+'</h2><p class="lead">Uncheck anything you don\'t want. You can edit details after.</p>'+
+    rows+'<label class="check"><input type="checkbox" id="fBought" checked> I bought these today (starts the countdown)</label>'+
+    '<div class="actions"><button class="btn" onclick="closeSheet()">Cancel</button><button class="btn primary" onclick="addFound('+withThumb+')">Add to shelf</button></div>');
+}
+function matchCat(v){ v=String(v||"").trim().toLowerCase(); const cs=db.categories;
+  return (cs.find(c=>c.name.toLowerCase()===v)||cs.find(c=>v&&(v.includes(c.name.toLowerCase())||c.name.toLowerCase().includes(v)))||cs.find(c=>c.name==="Other")||cs[cs.length-1]).name; }
+function addFound(withThumb){
+  const picked=[...document.querySelectorAll('.found input')].filter(c=>c.checked).map(c=>found[+c.dataset.i]);
+  if(!picked.length){ closeSheet(); return; }
+  if(!canAdd(picked.length)) return;
+  const bought=$("fBought").checked;
+  picked.slice().reverse().forEach(x=>{ const u=["days","weeks","months","years"].includes(x.lifeUnit)?x.lifeUnit:"months";
+    db.products.unshift({ id:uid(), created:Date.now(), name:String(x.name||"Product").slice(0,120), brand:String(x.brand||"").slice(0,80),
+      category:matchCat(x.category), subtype:String(x.subtype||"").slice(0,40), size:String(x.size||"").slice(0,40), actives:String(x.actives||"").slice(0,300),
+      website:String(x.website||"").slice(0,80), notes:String(x.notes||"").slice(0,200), cost:"", stock:bought?"Full":"", rating:0,
+      lastPurchased:bought?todayISO():"", expAmt:(+x.lifeAmount>0?String(x.lifeAmount):""), expUnit:u, reorder:false, active:true,
+      img:"" }); });
+  if(withThumb){ const target=db.products[0]; shrinkDataUrl(shots[0].preview).then(t=>{ target.img=t; save(); render(); }); }
+  save(); closeSheet(); ui.tab="shelf"; render(); toast(picked.length+" added to your shelf.");
+}
+function shrinkDataUrl(src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ const sc=Math.min(1,360/Math.max(im.width,im.height));
+  const cv=document.createElement("canvas"); cv.width=Math.round(im.width*sc); cv.height=Math.round(im.height*sc); cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+  res(cv.toDataURL("image/jpeg",0.62)); }; im.onerror=()=>res(""); im.src=src; }); }
+
+/* ================= server calls ================= */
+async function api(path, body){
+  const opt={ method: body===undefined?"GET":"POST", headers:{} };
+  if(body!==undefined){ opt.headers["content-type"]="application/json"; opt.body=JSON.stringify(body); }
+  if(lic && lic.token) opt.headers.authorization="Bearer "+lic.token;
+  let r; try{ r=await fetch("/api/"+path,opt); }catch(e){ throw new Error("You're offline. Connect and try again."); }
+  let d={}; try{ d=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error(d.error || ("Something went wrong ("+r.status+")."));
+  return d;
+}
+async function refreshEnt(){
+  if(!lic || !lic.token) return;
+  try{ const d=await api("status"); ent=Object.assign({},d,{checkedAt:Date.now()}); if(d.email) lic.email=d.email; jset(LKEY,lic); jset(EKEY,ent); render(); }
+  catch(e){ if(/isn't valid/.test(e.message)){ ent={}; jset(EKEY,ent); render(); } }
+}
+async function handleReturn(){
+  const q=new URLSearchParams(location.search);
+  const sid=q.get("session_id"), cancel=q.get("checkout")==="cancel";
+  if(sid||cancel) history.replaceState(null,"",location.pathname);
+  if(cancel) toast("Checkout canceled. You're still on Free.");
+  if(!sid) return;
+  toast("Confirming your plan\u2026");
+  try{
+    const d=await api("verify",{sessionId:sid});
+    lic={token:d.token,email:d.email}; ent=Object.assign({},d.ent,{checkedAt:Date.now()});
+    jset(LKEY,lic); jset(EKEY,ent); render();
+    toast(ent.status==="trialing" ? "Your "+TRIAL_DAYS+"-day Pro trial has started." : "Shelf Pro is on. Thank you.");
+    if(ent.status==="trialing") setTimeout(()=>openSettings(true),900);
+  }catch(e){ toast(e.message); }
+}
+
+/* ================= paywall ================= */
+const REASONS={
+  cap:"You've used all "+FREE_LIMIT+" free spots on your shelf. Pro holds everything you own.",
+  scan:"Scanning reads the label for you, even a whole shelf in one photo.",
+  projection:"Pro counts down each product from the day you bought it, so you know what's running low before it's gone.",
+  sort:"Sort by what runs out first, days left, or your ratings.",
+  active:"Retire products you've stopped using without losing their history.",
+  export:"Export your whole shelf as a spreadsheet or backup file.",
+  generic:"Everything on your shelf, tracked for you."
+};
+let planPick="yearly";
+function paywall(reason){
+  if(isPro()){ if(reason==="cap") toast("Pro is on."); return; }
+  const lapsed = lic && lic.token;
+  const cta = lapsed ? "Resubscribe" : "Start "+TRIAL_DAYS+"-day free trial";
+  const planHTML=()=>Object.entries(PRICES).map(([k,v])=>'<button class="plan'+(planPick===k?" on":"")+'" aria-pressed="'+(planPick===k)+'" onclick="planPick=\''+k+'\';paywall(\''+reason+'\')"><b>'+v.label+'</b><div class="price">'+v.price+'</div><small>'+v.sub+'</small></button>').join("");
+  const p=PRICES[planPick];
+  openSheet('<div class="pw-head" id="sheetTitle">Know what\'s running low before you run out.</div>'+
+    '<p class="pw-reason">'+esc(REASONS[reason]||REASONS.generic)+'</p>'+
+    '<ul class="benefits"><li>Unlimited products</li><li>A run-out countdown for every product</li><li>Scan labels and whole shelves with your camera</li>'+
+      '<li>Sort by what runs out first</li><li>Retire products you no longer use</li><li>Export your shelf any time</li></ul>'+
+    '<div class="plans">'+planHTML()+'</div>'+
+    '<button class="btn primary block" id="payGo" onclick="startCheckout()">'+cta+'</button>'+
+    '<p class="fine">'+(lapsed?"Billed "+p.price+" "+p.per+". Cancel any time."
+      :"Free for "+TRIAL_DAYS+" days, then "+p.price+" "+p.per+". Cancel before the trial ends and you won't be charged.")+'</p>'+
+    '<p style="text-align:center;margin:6px 0 0"><button class="linkbtn" onclick="openRestore()">Already have Pro? Restore it</button></p>');
+}
+async function startCheckout(){
+  const b=$("payGo"); b.disabled=true; b.textContent="Opening secure checkout\u2026";
+  try{ const d=await api("checkout",{plan:planPick}); location.href=d.url; }
+  catch(e){ b.disabled=false; b.textContent="Try again"; toast(e.message); }
+}
+function planClick(){ if(isPro()) openSettings(); else paywall("generic"); }
+
+/* ================= settings ================= */
+function openSettings(){
+  const pro=isPro();
+  let plan;
+  if(DEV_PRO) plan='<h3>Pro (developer mode)</h3><p>Unlocked by ?pro=1 on localhost. Checkout and scans still run through the server.</p>';
+  else if(pro){
+    const trial=ent.status==="trialing";
+    const when = trial&&ent.trialEnd ? "Trial ends "+fmtLong(ent.trialEnd)+"." : ent.periodEnd ? (ent.cancelAtPeriodEnd?"Ends ":"Renews ")+fmtLong(ent.periodEnd)+"." : "";
+    const used=ent.scansUsed||0, lim=ent.scansLimit||50;
+    plan='<h3>Shelf Pro'+(trial?" trial":"")+(ent.interval?", "+(ent.interval==="year"?"yearly":"monthly"):"")+'</h3><p>'+esc(when)+(ent.status==="past_due"?" Your last payment didn't go through. Update your card to keep Pro.":"")+'</p>'+
+      '<p style="margin-top:10px">'+used+' of '+lim+' scans used this month</p><div class="meter"><i style="width:'+Math.min(100,Math.round(used/lim*100))+'%"></i></div>'+
+      '<div class="rowbtns"><button class="sbtn" onclick="openPortal()">Manage subscription</button></div>';
+  } else {
+    plan='<h3>Free</h3><p>'+db.products.length+' of '+FREE_LIMIT+' products used.</p><div class="meter"><i style="width:'+Math.min(100,Math.round(db.products.length/FREE_LIMIT*100))+'%"></i></div>'+
+      '<div class="rowbtns"><button class="sbtn primary" onclick="paywall(\'generic\')">'+(lic&&lic.token?"Resubscribe":"Try Pro free for "+TRIAL_DAYS+" days")+'</button></div>';
+  }
+  const key = lic && lic.token ? '<div class="card"><h3>Your license key</h3><p>'+(lic.email?esc(lic.email)+". ":"")+'Save this key to turn on Pro on another phone or browser.</p><div class="keybox" id="keybox">'+esc(lic.token)+'</div>'+
+      '<div class="rowbtns"><button class="sbtn" onclick="copyKey()">Copy key</button></div></div>' : "";
+  openSheet('<h2 id="sheetTitle">Settings</h2>'+
+    '<div class="card">'+plan+'</div>'+key+
+    '<div class="card"><h3>Your data</h3><p>Your shelf is saved on this device. Photos you scan are read and not kept.</p><div class="rowbtns">'+
+      '<button class="sbtn" onclick="openImport()">Import CSV</button>'+
+      '<button class="sbtn" onclick="exportCSV()">Export CSV'+(pro?'':'<span class="pro-pill">Pro</span>')+'</button>'+
+      '<button class="sbtn" onclick="exportBackup()">Back up'+(pro?'':'<span class="pro-pill">Pro</span>')+'</button>'+
+      '<button class="sbtn" onclick="restoreBackup()">Restore backup</button>'+
+      '<button class="sbtn" onclick="closeSheet();openCats()">Categories</button></div></div>'+
+    (lic&&lic.token?'':'<p style="margin:14px 2px 0"><button class="linkbtn" onclick="openRestore()">Restore Pro with a license key</button></p>')+
+    '<div class="card"><h3>Start over</h3><p>Erase every product and category on this device.</p><div class="rowbtns"><button class="sbtn" style="color:var(--out)" onclick="eraseAll()">Erase everything</button></div></div>'+
+    '<div class="actions"><button class="btn" onclick="closeSheet()">Done</button></div>');
+  refreshEnt();
+}
+function copyKey(){ navigator.clipboard.writeText(lic.token).then(()=>toast("License key copied."),()=>{ const r=document.createRange(); r.selectNodeContents($("keybox")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Key selected. Copy it now."); }); }
+async function openPortal(){ try{ const d=await api("portal",{}); location.href=d.url; }catch(e){ toast(e.message); } }
+function openRestore(){
+  openSheet('<h2 id="sheetTitle">Restore Pro</h2><p class="lead">Paste the license key from Settings on the device where you bought Pro.</p>'+
+    '<textarea id="rKey" autofocus placeholder="Paste your license key" style="font-family:ui-monospace,Menlo,monospace;font-size:13px"></textarea>'+
+    '<div class="status" id="rStatus"></div>'+
+    '<div class="actions"><button class="btn" onclick="closeSheet()">Cancel</button><button class="btn primary" onclick="doRestore()">Restore</button></div>');
+}
+async function doRestore(){
+  const k=($("rKey").value||"").trim(), st=$("rStatus"); if(!k){ st.textContent="Paste your key first."; return; }
+  const prev=lic; lic={token:k}; st.className="status"; st.textContent="Checking\u2026";
+  try{ const d=await api("status"); ent=Object.assign({},d,{checkedAt:Date.now()}); lic.email=d.email||""; jset(LKEY,lic); jset(EKEY,ent);
+    closeSheet(); render(); toast(d.pro?"Shelf Pro is on.":"Key accepted, but the subscription isn't active."); }
+  catch(e){ lic=prev; st.className="status err"; st.textContent=e.message; }
+}
+function eraseAll(){ if(!confirm("Erase your whole shelf on this device? This can't be undone.")) return;
+  db={products:[],categories:defaultCats(),settings:{}}; save(); closeSheet(); render(); toast("Shelf erased."); }
+
+/* ---------- export / backup ---------- */
+const CSV_COLS=["Name","Brand","Category","Type","Size","Stock","Last bought","Lasts","Lasts unit","Rating","Price","Where to buy","Key ingredients","Notes","Reorder","In use"];
+function csvCell(v){ v=String(v==null?"":v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function exportCSV(){
+  if(!isPro()){ paywall("export"); return; }
+  const rows=[CSV_COLS].concat(db.products.map(p=>[p.name,p.brand,p.category,p.subtype,p.size,p.stock,p.lastPurchased,p.expAmt,p.expUnit,p.rating||"",p.cost,p.website,p.actives,p.notes,p.reorder?"yes":"",p.active===false?"no":"yes"]));
+  download("shelf-"+todayISO()+".csv", rows.map(r=>r.map(csvCell).join(",")).join("\n"), "text/csv"); toast("CSV exported.");
+}
+function exportBackup(){
+  if(!isPro()){ paywall("export"); return; }
+  download("shelf-backup-"+todayISO()+".json", JSON.stringify({app:"shelf",version:1,exported:new Date().toISOString(),data:db}), "application/json"); toast("Backup saved.");
+}
+function restoreBackup(){
+  const f=$("fileAny"); f.accept=".json,application/json"; f.multiple=false; f.removeAttribute("capture");
+  f.onchange=()=>{ const file=f.files[0]; f.value=""; if(!file) return; const r=new FileReader();
+    r.onload=()=>{ try{ const j=JSON.parse(r.result); const d=j&&j.data; if(!d||!Array.isArray(d.products)) throw 0;
+        if(!isPro() && d.products.length>FREE_LIMIT){ paywall("cap"); return; }
+        if(!confirm("Replace your shelf with this backup ("+d.products.length+" products)?")) return;
+        db={products:d.products,categories:(d.categories&&d.categories.length)?d.categories:defaultCats(),settings:d.settings||{}}; save(); closeSheet(); render(); toast("Backup restored.");
+      }catch(e){ toast("That file isn't a Shelf backup."); } };
+    r.readAsText(file); };
+  f.click();
+}
+
+/* ---------- CSV import ---------- */
+let parsed=[];
+function openImport(){
+  openSheet('<h2 id="sheetTitle">Import a list</h2><p class="lead">Paste rows or upload a CSV. Columns: Name, Brand, Category, Type, Size, Price, Where to buy, Stock, Key ingredients, Notes, Rating. Only Name is required.</p>'+
+    '<textarea id="impText" style="min-height:140px" placeholder="Name,Brand,Category,Type,Size"></textarea>'+
+    '<div class="rowbtns"><button class="sbtn" onclick="impFile()">Upload CSV</button><button class="sbtn" onclick="impTemplate()">Download template</button></div>'+
+    '<div class="actions"><button class="btn" onclick="closeSheet()">Cancel</button><button class="btn primary" onclick="impPreview()">Preview</button></div>');
+}
+function impFile(){ const f=$("fileAny"); f.accept=".csv,.txt,text/csv,text/plain"; f.multiple=false; f.removeAttribute("capture");
+  f.onchange=()=>{ const file=f.files[0]; f.value=""; if(!file) return; const r=new FileReader(); r.onload=()=>{ $("impText").value=r.result; toast("File loaded. Tap Preview."); }; r.readAsText(file); }; f.click(); }
+function impTemplate(){ download("shelf-template.csv",'Name,Brand,Category,Type,Size,Price,Where to buy,Stock,Key ingredients,Notes,Rating\n"Daily Serum","Brand Name","Skincare","Serum","1 fl oz","28","brand.com","Full","Niacinamide","","4"\n',"text/csv"); }
+function splitRow(line){
+  if(line.includes("\t")) return line.split("\t").map(c=>c.trim());
+  const out=[]; let cur="", q=false;
+  for(let i=0;i<line.length;i++){ const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else { if(ch==='"') q=true; else if(ch===","){ out.push(cur.trim()); cur=""; } else cur+=ch; } }
+  out.push(cur.trim()); return out;
+}
+function normStock(v){ v=String(v||"").trim().toLowerCase(); return ({full:"Full",half:"Half",low:"Low","almost out":"Almost out",almost:"Almost out",empty:"Empty",out:"Empty"})[v]||""; }
+function parseCSV(text){
+  const lines=String(text).split(/\r?\n/).map(l=>l.trim()).filter(Boolean); if(!lines.length) return [];
+  let rows=lines.map(splitRow);
+  const hk=rows[0].map(c=>c.toLowerCase().replace(/[^a-z]/g,""));
+  const known=["name","product","brand","category","type","subtype","size","price","cost","wheretobuy","website","url","stock","keyingredients","actives","ingredients","notes","rating"];
+  const hdr = hk.filter(c=>known.includes(c)).length>=2 ? hk : null; if(hdr) rows=rows.slice(1);
+  const g=(cells,names,pos)=>{ if(hdr){ for(const n of names){ const j=hdr.indexOf(n); if(j>-1) return (cells[j]||"").trim(); } return ""; } return (cells[pos]||"").trim(); };
+  return rows.map(c=>({ name:g(c,["name","product"],0), brand:g(c,["brand"],1), category:matchCat(g(c,["category"],2)), subtype:g(c,["type","subtype"],3),
+    size:g(c,["size"],4), cost:g(c,["price","cost"],5).replace(/^\$/,""), website:g(c,["wheretobuy","website","url"],6), stock:normStock(g(c,["stock"],7)),
+    actives:g(c,["keyingredients","actives","ingredients"],8), notes:g(c,["notes"],9), rating:clamp(parseInt(g(c,["rating"],10),10)||0,0,5) })).filter(x=>x.name);
+}
+function impPreview(){
+  parsed=parseCSV($("impText").value);
+  if(!parsed.length){ toast("No rows with a name were found."); return; }
+  const room=isPro()?Infinity:FREE_LIMIT-db.products.length;
+  const rows=parsed.map((x,i)=>'<label class="found"><input type="checkbox" data-i="'+i+'"'+(i<room?" checked":"")+'><span><span class="pname">'+esc(x.name)+'</span><span class="pbrand">'+[x.brand,x.category,x.size].filter(Boolean).map(esc).join(", ")+'</span></span></label>').join("");
+  openSheet('<h2 id="sheetTitle">'+parsed.length+' row'+(parsed.length===1?"":"s")+' found</h2>'+
+    (room<parsed.length?'<p class="lead">Free holds '+FREE_LIMIT+' products, so '+Math.max(0,room)+' are checked. <button class="linkbtn" onclick="paywall(\'cap\')">Get unlimited</button></p>':'<p class="lead">Uncheck anything you don\'t want.</p>')+
+    rows+'<div class="actions"><button class="btn" onclick="openImport()">Back</button><button class="btn primary" onclick="impConfirm()">Add to shelf</button></div>');
+}
+function impConfirm(){
+  const pick=[...document.querySelectorAll(".found input")].filter(c=>c.checked).map(c=>parsed[+c.dataset.i]);
+  if(!pick.length){ closeSheet(); return; }
+  if(!canAdd(pick.length)) return;
+  pick.slice().reverse().forEach(x=>db.products.unshift(Object.assign({id:uid(),created:Date.now(),lastPurchased:"",expAmt:"",expUnit:"months",reorder:false,active:true,img:""},x)));
+  save(); closeSheet(); render(); toast(pick.length+" added to your shelf.");
+}
+
+/* ---------- categories ---------- */
+let catEdit=null, catIcon="sparkle", catColor=CAT_COLORS[0];
+function openCats(){
+  const rows=db.categories.map(c=>{ const n=db.products.filter(p=>p.category===c.name).length;
+    return '<button class="catrow" data-c="'+esc(c.name)+'"><span class="thumb" style="width:40px;height:40px;background:'+c.color+'16">'+icon(c.icon,c.color,20)+'</span><span><b>'+esc(c.name)+'</b><span class="pbrand">'+n+' product'+(n===1?"":"s")+'</span></span></button>'; }).join("");
+  openSheet('<h2 id="sheetTitle">Categories</h2><div class="list" style="padding:0 12px">'+rows+'</div>'+
+    '<div class="actions"><button class="btn" onclick="closeSheet()">Done</button><button class="btn primary" onclick="catForm(null)">New category</button></div>');
+  document.querySelectorAll(".catrow").forEach(b=>b.onclick=()=>catForm(b.dataset.c));
+}
+function catForm(name){
+  catEdit=name; const c=name?getCat(name):{name:"",icon:"sparkle",color:CAT_COLORS[0],subtypes:[]};
+  catIcon=c.icon; catColor=c.color;
+  openSheet('<h2 id="sheetTitle">'+(name?"Edit category":"New category")+'</h2>'+
+    '<label class="f" for="cName">Name</label><input class="in" id="cName" value="'+esc(c.name)+'">'+
+    '<label class="f">Icon</label><div class="pick" id="cIcons"></div><label class="f">Color</label><div class="pick" id="cColors"></div>'+
+    '<label class="f" for="cSubs">Types, one per line</label><textarea id="cSubs" style="min-height:110px">'+esc((c.subtypes||[]).join("\n"))+'</textarea>'+
+    '<div class="actions">'+(name?'<button class="btn danger" onclick="delCat()">Delete</button>':'')+'<button class="btn" onclick="openCats()">Back</button><button class="btn primary" onclick="saveCat()">Save</button></div>');
+  drawPickers();
+}
+function drawPickers(){
+  $("cIcons").innerHTML=Object.keys(ICONS).map(k=>'<button type="button" aria-label="'+k+'" class="ipick'+(k===catIcon?" on":"")+'" onclick="catIcon=\''+k+'\';drawPickers()">'+icon(k,catColor,22)+'</button>').join("");
+  $("cColors").innerHTML=CAT_COLORS.map(c=>'<button type="button" aria-label="Color '+c+'" class="cpick'+(c===catColor?" on":"")+'" style="background:'+c+'" onclick="catColor=\''+c+'\';drawPickers()"></button>').join("");
+}
+function saveCat(){
+  const name=$("cName").value.trim(); if(!name){ toast("Give the category a name."); return; }
+  if(db.categories.some(c=>c.name.toLowerCase()===name.toLowerCase() && c.name!==catEdit)){ toast("That category already exists."); return; }
+  const subs=$("cSubs").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(catEdit){ const c=db.categories.find(x=>x.name===catEdit); const old=c.name; Object.assign(c,{name,icon:catIcon,color:catColor,subtypes:subs});
+    if(old!==name){ db.products.forEach(p=>{ if(p.category===old) p.category=name; }); if(ui.cat===old) ui.cat=name; } }
+  else db.categories.push({name,icon:catIcon,color:catColor,subtypes:subs});
+  save(); render(); openCats(); toast("Category saved.");
+}
+function delCat(){
+  if(db.categories.length<=1){ toast("Keep at least one category."); return; }
+  const used=db.products.filter(p=>p.category===catEdit).length;
+  const other=(db.categories.find(c=>c.name==="Other"&&c.name!==catEdit)||db.categories.find(c=>c.name!==catEdit)).name;
+  if(!confirm(used?"Delete "+catEdit+"? Its "+used+" product"+(used===1?"":"s")+" move to "+other+".":"Delete "+catEdit+"?")) return;
+  db.products.forEach(p=>{ if(p.category===catEdit) p.category=other; });
+  db.categories=db.categories.filter(c=>c.name!==catEdit); if(ui.cat===catEdit) ui.cat="All";
+  save(); render(); openCats(); toast("Category deleted.");
+}
+
+/* ================= boot ================= */
+render();
+handleReturn().then(()=>{ if(lic && (!ent.checkedAt || Date.now()-ent.checkedAt > 6*3600e3)) refreshEnt(); });
+</script>
+</body>
+</html>
