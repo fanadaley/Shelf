@@ -43,7 +43,7 @@ Free users can enter "how long one lasts" and the purchase date. The moment they
 - This key is separate from Northstar's. Revoking one never touches the other.
 
 **2. Stripe (test mode first)**
-- Products: create "Shelf Pro" with two recurring prices: $4.99 monthly and $29.99 yearly. Copy both `price_...` IDs.
+- Products: create "Shelf Pro" with two recurring prices: $3.99 monthly and $19.99 yearly. Copy both `price_...` IDs.
 - Settings > Billing > Customer portal: turn it on. Allow cancel, allow switching between the two prices, allow card updates.
 - Developers > Webhooks: add endpoint `https://YOUR-SITE.netlify.app/api/stripe-webhook`, events `customer.subscription.created`, `.updated`, `.deleted`, `.paused`, `.resumed`. Copy the signing secret.
 
@@ -98,3 +98,33 @@ Paste into a new file named `shelf-backup.json`. In Shelf: Settings > Restore ba
 
 - **Phase 1.5:** Firebase Auth (email link) + Firestore sync behind the same license, which also replaces license keys with sign-in. Add a Privacy Policy and Terms page (Stripe and the App Store both require them).
 - **Phase 2:** Capacitor wrap on your Mac, Apple Developer account, StoreKit subscription mirroring these two prices. Keep web checkout as the higher-margin channel.
+
+
+## Social release (added November 2026)
+
+Shelf is now "Beli for your beauty shelf": track your own products, share them with friends, and reorder in one tap.
+
+**New in the app**
+- **Statuses:** In use, Superstar, Retired. Free for everyone (retiring used to be Pro).
+- **Reviews and photos:** a written review and up to 3 experience photos per product.
+- **Routine tab:** morning and evening steps in order, plus notes.
+- **Friends tab:** share your shelf as a private link (`/s/<id>`), follow friends' shelves, preview yours as they see it.
+- **Friend view:** their superstars, routine, and shelf; tap any product to Shop or Add to my shelf.
+- **Amazon import:** upload Amazon's order history file (Retail.OrderHistory.1.csv). Beauty and wellness orders are pre-selected, repeat orders merged, reorder links set to the product page. The file is read on the device, never uploaded.
+- **Affiliate links:** your own Shop buttons and friends' Shop taps add your Amazon Associates tag.
+
+**What friends can see:** products, ratings, reviews, photos, buy links, routine, name, bio. Never: prices paid, notes, stock levels, countdowns, or license key.
+
+**New server functions**
+| Function | Route | Job |
+|---|---|---|
+| share.mjs | `/api/share`, `/api/share/:id` | Create, update (owner key required), read, and delete shared shelves |
+| go.mjs | `/go/:id/:pid` | Opens a friend's product link with the affiliate tag; counts clicks per shelf per month |
+| config.mjs | `/api/config` | Gives the app the public Amazon tag |
+
+**New environment variable:** `AMAZON_ASSOCIATE_TAG` (for example `shelfbeauty-20`). Until it's set, links still work, just without commission.
+
+**Known limits for this release**
+- Share links are unlisted, not access-controlled: anyone with the link can view. Accounts (Phase 1.5) add friend-only access.
+- Non-Amazon links pass through untagged. Add ShopMy or a beauty network next.
+- Click counts are stored but not yet shown to the person whose shelf drove them.

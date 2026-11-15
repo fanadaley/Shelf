@@ -109,3 +109,33 @@ export async function entitlement(cid) {
     scansLimit: scanLimit(sub),
   };
 }
+
+/* ---------- sharing + affiliate ---------- */
+export const sharesStore = () => getStore({ name: "shelf-shares", consistency: "strong" });
+export const clicksStore = () => getStore({ name: "shelf-clicks", consistency: "strong" });
+
+export function normUrl(u) {
+  u = String(u || "").trim();
+  if (!u) return "";
+  if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+  try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ""; } catch { return ""; }
+}
+
+// Adds the Amazon Associates tag to Amazon links. Other links pass through untouched for now.
+export function tagUrl(u) {
+  u = normUrl(u);
+  const tag = process.env.AMAZON_ASSOCIATE_TAG;
+  if (!u || !tag) return u;
+  try {
+    const x = new URL(u);
+    if (/(^|\.)amazon\.[a-z.]+$/i.test(x.hostname)) { x.searchParams.set("tag", tag); return x.href; }
+  } catch {}
+  return u;
+}
+
+export const sha256 = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
+export const randomId = (n = 10) => {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const b = crypto.randomBytes(n);
+  return Array.from(b, (x) => abc[x % abc.length]).join("");
+};
